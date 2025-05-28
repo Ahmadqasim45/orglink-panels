@@ -1,0 +1,182 @@
+
+.parent-organ-donation-section {
+
+    .transform-section {
+        margin-top: 0px !important;
+        padding: 0px 30px;
+        background-color: var(--BackgroundColor); /* Using BackgroundColor variable */
+        
+    }
+
+    .equal-columns {
+        display: flex !important;
+        align-items:stretch;
+        justify-content: space-between;
+        align-items: center;
+        height: fit-content !important;
+        overflow:hidden;
+      
+        
+    }
+
+    
+    .img-container {
+        height: 100%;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .img-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 16px;
+    }
+
+    .content-wrapper {
+        height: 100%;
+        padding: 40px 0 40px 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .section-title {
+        font-size: 30px  ;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 24px;
+        color: var(--HeadingColor) !important; /* Using HeadingColor variable */
+        text-align: left;
+    }
+
+    .section-text {
+        /* color: var(--TextColor); Using TextColor variable */
+        margin-bottom: 20px;
+        line-height: 1.6;
+    }
+
+    .steps-list {
+        list-style: none;
+        padding: 0;
+        display: grid;
+        grid-template-columns: 1.5fr 1.8fr;
+        gap: 0px !important;
+        margin-bottom: 0;
+    }
+
+    .step-item {
+        display: flex;
+        align-items: center !important;
+        height: 35px;
+        gap: 12px;
+    }
+
+    .step-number {
+        background-color: var( --PrimaryColor);
+        color: white;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        font-weight: 600;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        flex-shrink: 0;
+        /* margin-top: 20px; */
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .step-text {
+        font-weight: 400 !important;
+        /* color: var(--TextColor); Using TextColor variable */
+        font-size: 14px !important;
+    }
+
+    @media (max-width: 991px) {
+        .equal-columns {
+            flex-direction: column;
+            /* padding: 50px 0px !important; */
+            width: 100%;
+            margin-top: 100px !important;
+            height: fit-content;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items:center
+        }
+      
+        
+
+        .img-container {
+           width: 100% !important;
+           height: 500px;
+           overflow-y: hidden;
+            /* margin-top: -130px; */
+        }
+        .img-container img{
+            width: 100%;
+            object-fit: cover;
+        }
+
+        .content-wrapper {
+            padding: 20px 0;
+            height: auto;
+            align-items: center;
+           justify-content: space-between !important;
+         
+        }
+        .steps-list{
+            gap: 20px !important;
+        }
+
+        .section-title {
+            font-size: 1.4rem !important;
+            text-align: center;
+        }
+       
+    }
+
+    @media screen  and (max-width:762px){
+        .equal-columns{
+            margin-top: 200px !important;
+
+        }
+        .img-container {
+            width: 100%;
+        }
+        .img-container img{
+            margin-top: 200px;
+            width: 100%;
+            object-fit: cover;
+        }
+        .steps-list{
+            display:flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 0 !important;
+            /* align-items: center; */
+
+        }
+        .content-wrapper{
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+        .transform-section{
+            
+            height: fit-content !important;
+            padding-bottom: 20px !important;
+          margin-top: 300px !important;
+
+        }
+        .equal-columns{
+            height: fit-content !important;
+        }
+        
+    }
+}
+

@@ -1,0 +1,204 @@
+/* Hero Section Styling */
+.custom-hero-section {
+    height: fit-content;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-left: 40px;
+    margin-top: 0px;
+   
+  }
+  
+  /* Headline Section */
+  .custom-hero-headline {
+    color: var(--TextColor);
+    padding: 0px 0px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start !important;
+    color: var(--SecondaryColor);
+    margin-top: 0;
+    margin-top: 30px !important;
+  }
+  
+  .custom-hero-subheadline {
+    font-size: 1rem;
+    text-transform: uppercase;
+    color: var(--PrimaryColor);
+   
+  }
+  
+  .custom-hero-title {
+    font-size: 3.5em;
+    font-weight: 800;
+    line-height: 1.2;
+    margin: 10px 0;
+    color: var(--SecondaryColor);
+    text-transform: capitalize;
+  }
+  
+  .custom-hero-title .highlight {
+    color: var(--AccentColor);
+  }
+  .custom-hero-button{
+    background-color: white;
+    color: var( --PrimaryColor);
+    border: 1px solid var(--PrimaryColor);
+    font-weight: bold;
+    transition: 0.3s ease-in-out;
+    width: 150px !important;
+  }
+  .btn-join-parent{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+  }
+  .custom-hero-button:hover{
+    background-color: var(--PrimaryColor);
+    color: white;
+
+  }
+  /* Image Section */
+  .custom-hero-image {
+    /* position: relative; */
+    top: 0 !important;
+    min-height: 400px;
+    background-position: center right;
+    background-size: 100% 100%;
+    background-image: url("../../assets/images/hero\ main.png");
+    clip-path: polygon(50% 0, 100% 0, 100% 100%, 0% 100%);
+    z-index: 1;
+    pointer-events: none;
+    object-fit: cover;
+    padding-top: 0px !important;
+  }
+  
+  /* Video iframe positioning */
+
+  
+  /* Play Button Styles */
+ 
+  
+ 
+  
+ 
+  
+  
+  
+  
+  
+ 
+  
+  
+  
+  /* Mobile and Tablet Breakpoints */
+  @media screen and (max-width: 992px) {
+    .custom-hero-section {
+      padding-left: 30px;
+      padding-right: 30px;
+margin-top: 50px;
+      flex-direction: column; /* Stacks the text and image vertically on tablet and mobile */
+      justify-content: center;
+      align-items: center !important;
+      
+    }
+  
+    .custom-hero-headline {
+      display: flex !important;
+      align-items: flex-start;
+      justify-content: flex-start;
+      text-align: center; /* Centers the text on smaller screens */
+    }
+  
+    .custom-hero-image {
+      margin-top: 30px; /* Adds space between the text and the image */
+      width: 100%; /* Ensures the image takes full width */
+      height: auto; /* Adjusts the height accordingly */
+      clip-path: none; /* Remove clip-path for better mobile layout */
+      border-radius: 10px;
+    }
+  }
+  
+  @media screen and (max-width: 762px) {
+    .custom-hero-section {
+      padding-left: 30px;
+      padding-right: 30px;
+      margin-top: 0px !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 400px !important;
+      flex-direction: column; /* Stacks content vertically */
+    }
+  
+    .custom-hero-headline {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      text-align: center; /* Centers text for mobile */
+    }
+  
+    .custom-hero-image {
+      margin-top: 20px;
+      width: 100%;
+      height: auto;
+      clip-path: none; /* Remove clip-path on small screens */
+    }
+  
+    .custom-hero-title {
+      text-align: center !important;
+      font-size: 1.3rem !important;
+    }
+    .btn-join-parent{
+      flex-direction: column;
+    }
+    .custom-hero-button{
+      width: 100%;
+    }
+  }
+  /* Responsive Design for Mobile */
+@media screen and (max-width: 766px)  {
+  .custom-hero-section {
+    flex-direction: column;
+    height: auto;
+  }
+  
+
+  /* Adjustments for the headline section */
+  .custom-hero-headline {
+    left: 0;
+    text-align: center;
+    padding: 15px 10px;
+  }
+
+  .custom-hero-title {
+    font-size: 2em;
+    text-align: center;
+  }
+
+  .custom-hero-button {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+  }
+
+  /* Adjustments for the image section */
+  .custom-hero-image {
+    min-height: 200px;
+    width: 100%;
+    clip-path: none;
+  }
+  .parent-hero{
+    margin-top: 100px;
+  }
+  .custom-hero-subheadline{
+    text-align: center !important;
+  }
+.custom-hero-title{
+  text-align:left;
+}
+}
+  

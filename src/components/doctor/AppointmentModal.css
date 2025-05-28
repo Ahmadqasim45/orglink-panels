@@ -1,0 +1,67 @@
+/* AppointmentModal styles */
+.AppointmentModal-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 1rem;
+}
+
+/* Make sure the modal stays above other elements */
+.AppointmentModal {
+    position: relative;
+    z-index: 51;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh; /* Ensure modal doesn't exceed viewport height */
+    overflow: hidden; /* Hide overflow */
+}
+
+/* Modal header styling */
+.AppointmentModal-header {
+    padding: 1.5rem 1.5rem 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    background-color: white;
+    z-index: 2;
+}
+
+/* Modal content styling */
+.AppointmentModal-content {
+    flex: 1;
+    overflow-y: auto; /* Make content scrollable */
+    padding: 1.5rem;
+    max-height: calc(90vh - 140px); /* Adjust to account for header and footer */
+}
+
+/* Modal footer styling */
+.AppointmentModal-footer {
+    padding: 1rem 1.5rem 1.5rem;
+    border-top: 1px solid #e2e8f0;
+    position: sticky;
+    bottom: 0;
+    background-color: white;
+    z-index: 2;
+}
+
+/* Styling for the schedule appointment button to make it more noticeable */
+.schedule-appointment-button {
+    background-color: #3490dc;
+    transition: background-color 0.3s ease;
+}
+
+.schedule-appointment-button:hover:not(:disabled) {
+    background-color: #2779bd;
+}
+
+.schedule-appointment-button:disabled {
+    background-color: #a0aec0;
+    cursor: not-allowed;
+}

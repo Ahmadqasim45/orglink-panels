@@ -1,0 +1,52 @@
+/* statistics section */
+.statistic-section {
+    padding-top: 70px;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 70px;
+    background: linear-gradient(to right, var(--PrimaryColor), var(--SecondaryColor)); /* Linear gradient with your color scheme */
+    color: #fff;
+    width:100% ;
+  /* margin-top: -10px !important; */
+  }
+  
+  .count-title {
+    font-size: 50px;
+    font-weight: bold;
+    margin-top: 10px;
+    margin-bottom: 0;
+    text-align: center;
+    color: #fff;
+  }
+  
+  .stats-text {
+    font-size: 15px;
+    margin-top: 15px;
+    margin-bottom: 0;
+    text-align: center;
+    color: #fff;
+    text-transform: uppercase;
+    font-weight: bold;
+  }
+  
+  .stats-line-black {
+    margin: 12px auto 0;
+    width: 55px;
+    height: 2px;
+    background-color: #fff;
+  }
+  
+  .stats-icon {
+    font-size: 35px;
+    margin: 0 auto;
+    display: table;
+    color: #fff;
+  }
+
+  @media screen and (max-width:992px) {
+    .statistic-section{
+      margin-top: 70px;
+  
+    }
+    
+  }

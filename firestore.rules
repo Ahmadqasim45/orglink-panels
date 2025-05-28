@@ -1,0 +1,142 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isDoctor() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'doctor';
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function canUpdateStatus(oldStatus, newStatus) {
+      let validDoctorTransitions = [
+        ['pending', 'under_doctor_review'],
+        ['under_doctor_review', 'doctor_approved'],
+        ['under_doctor_review', 'doctor_rejected'],
+        ['admin_override_rejection', 'approved'],
+        ['admin_override_rejection', 'rejected'],
+        ['admin_confirmed_approval', 'approved'],
+        ['admin_confirmed_rejection', 'rejected'],
+        ['admin_confirmed_rejection', 'doctor_appeal']
+      ];
+      
+      let validAdminTransitions = [
+        ['doctor_approved', 'admin_confirmed_approval'],
+        ['doctor_approved', 'admin_rejected_doctor_approval'],
+        ['doctor_rejected', 'admin_confirmed_rejection'],
+        ['doctor_rejected', 'admin_override_rejection'],
+        ['doctor_appeal', 'final_approved'],
+        ['doctor_appeal', 'final_rejected']
+      ];
+      
+      return (isDoctor() && 
+        validDoctorTransitions.hasAny([[oldStatus, newStatus]])) ||
+        (isAdmin() && 
+        validAdminTransitions.hasAny([[oldStatus, newStatus]]));
+    }
+
+    // Medical Forms
+    match /medicalForms/{formId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated() && 
+        (isAdmin() || isDoctor() || 
+         isOwner(resource.data.userId));
+      allow update: if isAuthenticated() && 
+        (
+          // Admin can update any form
+          isAdmin() ||
+          // Doctor can update forms assigned to them
+          (isDoctor() && resource.data.hospitalId == request.auth.uid &&
+           canUpdateStatus(resource.data.status, request.resource.data.status)) ||
+          // Owner can only update certain fields
+          (isOwner(resource.data.userId) && 
+           request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['additionalInfo', 'contactPreference']))
+        );
+      allow delete: if false;
+    }
+
+    // Approval History
+    match /approvalHistory/{historyId} {
+      allow create: if isAuthenticated() && 
+        (isAdmin() || isDoctor());
+      allow read: if isAuthenticated();
+      allow update, delete: if false;
+    }    // Notifications
+    match /notifications/{notificationId} {
+      allow create: if isAuthenticated() && 
+        (isAdmin() || isDoctor());
+      allow read: if isAuthenticated() && 
+        isOwner(resource.data.userId);
+      allow update: if isAuthenticated() && 
+        isOwner(resource.data.userId) &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['read']);
+      allow delete: if isAuthenticated() && 
+        isOwner(resource.data.userId);
+    }
+
+    // Appointment Collections Security
+    // Donor Appointments - only doctors can create, modify
+    match /donorAppointments/{appointmentId} {
+      allow create: if isAuthenticated() && (isDoctor() || isAdmin());
+      allow read: if isAuthenticated() && 
+        (isAdmin() || isDoctor() || 
+         isOwner(resource.data.donorId) || 
+         isOwner(resource.data.patientId) || 
+         isOwner(resource.data.userId));
+      allow update: if isAuthenticated() && (isDoctor() || isAdmin());
+      allow delete: if isAuthenticated() && (isDoctor() || isAdmin());
+    }
+
+    // Recipient Appointments - only doctors can create, modify
+    match /recipientAppointments/{appointmentId} {
+      allow create: if isAuthenticated() && (isDoctor() || isAdmin());
+      allow read: if isAuthenticated() && 
+        (isAdmin() || isDoctor() || 
+         isOwner(resource.data.recipientId) || 
+         isOwner(resource.data.patientId) || 
+         isOwner(resource.data.userId));
+      allow update: if isAuthenticated() && (isDoctor() || isAdmin());
+      allow delete: if isAuthenticated() && (isDoctor() || isAdmin());
+    }
+
+    // General Appointments - only doctors can create, modify
+    match /appointments/{appointmentId} {
+      allow create: if isAuthenticated() && (isDoctor() || isAdmin());
+      allow read: if isAuthenticated() && 
+        (isAdmin() || isDoctor() || 
+         isOwner(resource.data.patientId) || 
+         isOwner(resource.data.userId) ||
+         isOwner(resource.data.donorId) ||
+         isOwner(resource.data.recipientId));
+      allow update: if isAuthenticated() && (isDoctor() || isAdmin());
+      allow delete: if isAuthenticated() && (isDoctor() || isAdmin());
+    }
+
+    // Doctor Scheduled Appointments - only doctors can create, modify
+    match /doctorScheduledAppointments/{appointmentId} {
+      allow create: if isAuthenticated() && (isDoctor() || isAdmin());
+      allow read: if isAuthenticated() && 
+        (isAdmin() || isDoctor() || 
+         isOwner(resource.data.patientId) || 
+         isOwner(resource.data.userId) ||
+         isOwner(resource.data.donorId) ||
+         isOwner(resource.data.recipientId));
+      allow update: if isAuthenticated() && (isDoctor() || isAdmin());
+      allow delete: if isAuthenticated() && (isDoctor() || isAdmin());
+    }
+  }
+} 

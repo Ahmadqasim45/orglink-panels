@@ -1,0 +1,216 @@
+
+       
+
+.testimonial-section {
+    padding: 0px 30px !important;
+    background-color: var(--BackgroundColor);
+}
+
+.quote-icon {
+    font-size: 64px;
+    color: var(--PrimaryColor);
+    font-family: var(--primary-font-family);
+    line-height: 1;
+    margin-bottom: 20px;
+    font-weight: var(--poppins-heading-font-weight);
+}
+
+.testimonial-heading {
+    font-size: 2.5rem;
+    font-weight: var(--poppins-heading-font-weight);
+    margin-bottom: 20px;
+    color: var(--HeadingColor);
+    font-family: var(--primary-font-family);
+}
+
+.testimonial-text {
+    color: var(--TextColor);
+    margin-bottom: 30px;
+    font-family: var(--primary-font-family);
+    font-weight: var(--BodyText);
+    line-height: 1.6;
+}
+
+.author-name {
+    font-weight: var(--poppins-sub-heading-font-weight);
+    margin-bottom: 5px;
+    color: var(--HeadingColor);
+    font-family: var(--primary-font-family);
+}
+
+.author-title {
+    color: var(--TextColor);
+    font-size: 0.9rem;
+    font-family: var(--primary-font-family);
+    font-weight: var(--BodyText);
+}
+
+.video-placeholder {
+    background-color: var(--SecondaryColor);
+    border-radius: 15px;
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+}
+
+/* New Video Play Button Styles */
+
+/* ... (previous styles remain the same) ... */
+
+/* Updated Video Play Button Styles with centered triangle */
+.video-play-button {
+position: absolute;
+z-index: 10;
+top: 50%;
+left: 50%;
+transform: translateX(-50%) translateY(-50%);
+box-sizing: content-box;
+display: block;
+width: 32px;
+height: 44px;
+border-radius: 50%;
+padding: 18px 20px 18px 28px;
+cursor: pointer !important;
+pointer-events: auto;
+}
+
+.video-play-button:before {
+content: "";
+position: absolute;
+z-index: 0;
+left: 50%;
+top: 50%;
+transform: translateX(-50%) translateY(-50%);
+display: block;
+width: 80px;
+height: 80px;
+background: var(--PrimaryColor);
+border-radius: 50%;
+animation: pulse-border 1500ms ease-out infinite;
+}
+
+.video-play-button:after {
+content: "";
+position: absolute;
+z-index: 1;
+left: 50%;
+top: 50%;
+transform: translateX(-50%) translateY(-50%);
+display: block;
+width: 80px;
+height: 80px;
+background: var(--PrimaryColor);
+border-radius: 50%;
+transition: all 200ms;
+}
+
+.video-play-button:hover:after {
+background-color: var(--SecondaryColor);
+}
+
+/* Updated span positioning for perfect centering */
+.video-play-button span {
+display: flex;
+position: absolute;
+z-index: 3;
+width: 0;
+height: 0;
+border-left: 32px solid #fff;
+border-top: 22px solid transparent;
+border-bottom: 22px solid transparent;
+margin-left: 8px; /* Adjust this value for perfect centering */
+margin-top: -22px; /* Half of the border-top value */
+top: 80% !important;
+left: 45% !important;
+transform: translateX(-50%) translateY(-50%);
+}
+
+@keyframes pulse-border {
+0% {
+transform: translateX(-50%) translateY(-50%) translateZ(0) scale(1);
+opacity: 1;
+}
+100% {
+transform: translateX(-50%) translateY(-50%) translateZ(0) scale(1.5);
+opacity: 0;
+}
+}
+
+
+
+.carousel-indicators {
+    position: relative;
+    margin-top: 30px;
+    
+}
+
+.carousel-indicators [data-bs-target] {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #ddd;
+    border: none;
+    margin: 0 5px;
+}
+
+.carousel-indicators .active {
+    background-color: var(--PrimaryColor) !important;
+}
+.swiper-pagination-bullet {
+    background-color: var(--PrimaryColor) !important;
+  }
+  
+  /* If you want to change the active pagination dot color */
+  .swiper-pagination-bullet-active {
+    background-color: var(--PrimaryColor) !important;
+  }
+
+/* Mobile Devices */
+@media (max-width: 480px) {
+    .testimonial-heading {
+        font-size: 1.8rem;
+    }
+    
+    .testimonial-text {
+        font-size: 0.9rem;
+    }
+    
+    .author-name {
+        font-size: 1.1rem;
+    }
+    
+    .author-title {
+        font-size: 0.85rem;
+    }
+}
+
+
+/* Tablet Devices */
+@media (max-width: 991px) {
+    .testimonial-heading {
+        font-size: 2rem;
+    }
+    
+    .testimonial-text {
+        font-size: 1rem;
+    }
+    
+    .author-name {
+        font-size: 1.2rem;
+    }
+    
+    .author-title {
+        font-size: 0.9rem;
+    }
+    .quote-icon{
+        font-size: 40px !important;
+        margin-bottom: 10px !important;
+    }
+    .testimonial-heading{
+        font-size: 1.4rem !important;
+    }
+    .video-placeholder{
+        margin-top: 50px;
+        width: 100%;
+    }
+}
