@@ -12,6 +12,12 @@ import {
 import { Link } from "react-router-dom";
 import { APPROVAL_STATUS } from "../../utils/approvalSystem";
 
+// Define additional status constants for waiting list and match found
+const DONOR_STATUS = {
+  WAITING_LIST: "waiting-list",
+  MATCH_FOUND: "match-found",
+};
+
 function DonorDashboard() {
   const { user } = useContext(UserContext);
   const [medicalStatus, setMedicalStatus] = useState(null);
@@ -110,6 +116,12 @@ function DonorDashboard() {
       case "final-admin-approved":
       case "Final Admin Approved":
         return "🎉 Final Admin Approved!";
+      case DONOR_STATUS.WAITING_LIST:
+      case "waiting-list":
+        return "⏱️ On Waiting List";
+      case DONOR_STATUS.MATCH_FOUND:
+      case "match-found":
+        return "✨ Match Found!";
       case APPROVAL_STATUS.FINAL_ADMIN_REJECTED:
       case "final-admin-rejected":
       case "Final Admin Rejected":
@@ -161,10 +173,16 @@ function DonorDashboard() {
       case "final-admin-approved":
       case "Final Admin Approved":
         return "bg-green-100 text-green-800";
+      case DONOR_STATUS.WAITING_LIST:
+      case "waiting-list":
+        return "bg-indigo-100 text-indigo-800";
+      case DONOR_STATUS.MATCH_FOUND:
+      case "match-found":
+        return "bg-pink-100 text-pink-800";
       case APPROVAL_STATUS.FINAL_ADMIN_REJECTED:
       case "final-admin-rejected":
       case "Final Admin Rejected":
-        return "bg-red-100 text-red-800";      case "admin-approved":
+        return "bg-red-100 text-red-800";case "admin-approved":
       case APPROVAL_STATUS.ADMIN_APPROVED:
         return "bg-green-100 text-green-800";
       case "admin-rejected":
@@ -207,7 +225,14 @@ function DonorDashboard() {
       case "final-admin-approved":
       case "Final Admin Approved":
       case "approved":
-        return "100%";case APPROVAL_STATUS.ADMIN_REJECTED:
+        return "70%";
+      case DONOR_STATUS.WAITING_LIST:
+      case "waiting-list":
+        return "85%";
+      case DONOR_STATUS.MATCH_FOUND:
+      case "match-found":
+        return "100%";
+      case APPROVAL_STATUS.ADMIN_REJECTED:
       case APPROVAL_STATUS.INITIAL_ADMIN_REJECTED:
       case APPROVAL_STATUS.FINAL_ADMIN_REJECTED:
       case "rejected":
@@ -514,8 +539,7 @@ function DonorDashboard() {
                       "Appointment & assessment"}
                   </div>
                 </div>
-                
-                {/* Stage 3: Admin Final Decision */}
+                  {/* Stage 3: Admin Final Decision */}
                 <div className="text-center">
                   <div className={`
                     w-10 h-10 mx-auto rounded-full flex items-center justify-center text-white font-bold
@@ -535,12 +559,52 @@ function DonorDashboard() {
                   </div>
                   <div className="mt-2 text-xs font-medium">Final Approval</div>
                   <div className="text-xs text-gray-500">Admin review</div>
-                </div>              </div>
+                </div>
+                
+                {/* Stage 4: Waiting List */}
+                <div className="text-center">
+                  <div className={`
+                    w-10 h-10 mx-auto rounded-full flex items-center justify-center text-white font-bold
+                    ${(medicalStatus.requestStatus === DONOR_STATUS.WAITING_LIST || 
+                      medicalStatus.status === "waiting-list") ? 
+                      "bg-indigo-500 ring-4 ring-indigo-100" : 
+                      (medicalStatus.requestStatus === DONOR_STATUS.MATCH_FOUND || 
+                       medicalStatus.status === "match-found") ? 
+                      "bg-green-500" : 
+                      "bg-gray-400"}
+                  `}>
+                    {(medicalStatus.requestStatus === DONOR_STATUS.MATCH_FOUND || 
+                     medicalStatus.status === "match-found") ? 
+                      "✓" : 
+                     (medicalStatus.requestStatus === DONOR_STATUS.WAITING_LIST || 
+                      medicalStatus.status === "waiting-list") ? 
+                      "⏱️" : "4"}
+                  </div>
+                  <div className="mt-2 text-xs font-medium">Waiting List</div>
+                  <div className="text-xs text-gray-500">Awaiting match</div>
+                </div>
+                
+                {/* Stage 5: Match Found */}
+                <div className="text-center">
+                  <div className={`
+                    w-10 h-10 mx-auto rounded-full flex items-center justify-center text-white font-bold
+                    ${(medicalStatus.requestStatus === DONOR_STATUS.MATCH_FOUND || 
+                       medicalStatus.status === "match-found") ? 
+                      "bg-pink-500 ring-4 ring-pink-100" : 
+                      "bg-gray-400"}
+                  `}>
+                    {(medicalStatus.requestStatus === DONOR_STATUS.MATCH_FOUND || 
+                     medicalStatus.status === "match-found") ? 
+                      "✨" : "5"}
+                  </div>
+                  <div className="mt-2 text-xs font-medium">Match Found</div>
+                  <div className="text-xs text-gray-500">Ready for transplant</div>
+                </div>
+              </div>
             </div>
             
             {/* Current status indicator */}
-            <div className="mt-6 text-center">
-              <span className={`px-3 py-1 text-sm font-medium rounded-full
+            <div className="mt-6 text-center">              <span className={`px-3 py-1 text-sm font-medium rounded-full
                 ${medicalStatus.requestStatus === "pending" ? "bg-yellow-100 text-yellow-800" :
                   medicalStatus.requestStatus === APPROVAL_STATUS.INITIAL_DOCTOR_APPROVED ? "bg-blue-100 text-blue-800" :
                   (medicalStatus.requestStatus === APPROVAL_STATUS.INITIALLY_APPROVED || 
@@ -549,10 +613,15 @@ function DonorDashboard() {
                    medicalStatus.status === "medical-evaluation-in-progress") ? "bg-purple-100 text-purple-800" :
                   (medicalStatus.requestStatus === APPROVAL_STATUS.MEDICAL_EVALUATION_COMPLETED || 
                    medicalStatus.status === "medical-evaluation-completed") ? "bg-blue-100 text-blue-800" :
-                  medicalStatus.requestStatus === APPROVAL_STATUS.DOCTOR_APPROVED ? "bg-blue-100 text-blue-800" :                  medicalStatus.requestStatus === APPROVAL_STATUS.ADMIN_APPROVED ? "bg-green-100 text-green-800" :
+                  medicalStatus.requestStatus === APPROVAL_STATUS.DOCTOR_APPROVED ? "bg-blue-100 text-blue-800" :
+                  medicalStatus.requestStatus === APPROVAL_STATUS.ADMIN_APPROVED ? "bg-green-100 text-green-800" :
                   (medicalStatus.status === APPROVAL_STATUS.FINAL_APPROVED ||
                    medicalStatus.requestStatus === "approved" ||
                    medicalStatus.status === "approved") ? "bg-green-100 text-green-800" :
+                  (medicalStatus.requestStatus === DONOR_STATUS.WAITING_LIST ||
+                   medicalStatus.status === "waiting-list") ? "bg-indigo-100 text-indigo-800" :
+                  (medicalStatus.requestStatus === DONOR_STATUS.MATCH_FOUND ||
+                   medicalStatus.status === "match-found") ? "bg-pink-100 text-pink-800" :
                   "bg-red-100 text-red-800"}
               `}>
                 <span className="mr-1">●</span>                {medicalStatus.requestStatus === "pending" ? "Awaiting Initial Review" :
@@ -568,6 +637,10 @@ function DonorDashboard() {
                    medicalStatus.status === APPROVAL_STATUS.FINAL_APPROVED ||
                    medicalStatus.requestStatus === "approved" ||
                    medicalStatus.status === "approved") ? "🎉 Final Approval Completed - Fully Approved!" :
+                  (medicalStatus.requestStatus === DONOR_STATUS.WAITING_LIST ||
+                   medicalStatus.status === "waiting-list") ? "⏱️ On Waiting List - Awaiting Match" :
+                  (medicalStatus.requestStatus === DONOR_STATUS.MATCH_FOUND ||
+                   medicalStatus.status === "match-found") ? "✨ Match Found - Ready for Transplant!" :
                   (medicalStatus.requestStatus === "rejected" ||
                    medicalStatus.status === "rejected") ? "❌ Application Rejected" :
                   "Application Status"}
@@ -652,9 +725,7 @@ function DonorDashboard() {
                 </p>
               </div>
             </div>
-          )}
-
-          {(medicalStatus.requestStatus === "admin-approved" ||
+          )}          {(medicalStatus.requestStatus === "admin-approved" ||
             medicalStatus.status === "approved" ||
             medicalStatus.requestStatus === APPROVAL_STATUS.ADMIN_APPROVED ||
             medicalStatus.status === APPROVAL_STATUS.FINAL_APPROVED ||
@@ -688,7 +759,82 @@ function DonorDashboard() {
                 </p>
               </div>
             </div>
-          )}          {/* Rejection Messages */}
+          )}
+          
+          {/* Waiting List Status */}
+          {(medicalStatus.requestStatus === DONOR_STATUS.WAITING_LIST ||
+            medicalStatus.status === "waiting-list") && (
+            <div className="bg-indigo-50 border-l-4 border-indigo-400 p-4 mb-6">
+              <p className="text-indigo-800 font-medium">
+                ⏱️ You have been added to the organ donation waiting list!
+              </p>
+              
+              {medicalStatus.waitingListNotes && (
+                <div className="mt-2 bg-white p-3 rounded-md border border-indigo-200">
+                  <p className="font-medium text-indigo-800">Waiting List Information:</p>
+                  <p className="italic">{medicalStatus.waitingListNotes}</p>
+                </div>
+              )}
+              
+              <div className="mt-2">
+                <p className="text-indigo-700">
+                  <span className="font-medium">Your blood type:</span>{" "}
+                  {medicalStatus.bloodType || "Not specified"}
+                </p>
+                <p className="text-indigo-700 mt-1">
+                  <span className="font-medium">Organ type:</span>{" "}
+                  {medicalStatus.organType || medicalStatus.organToDonate || "Not specified"}
+                </p>
+                <p className="text-indigo-700 mt-1">
+                  We are actively looking for a suitable match for your organ donation.
+                  You will be notified when a match is found.
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {/* Match Found Status */}
+          {(medicalStatus.requestStatus === DONOR_STATUS.MATCH_FOUND ||
+            medicalStatus.status === "match-found") && (
+            <div className="bg-pink-50 border-l-4 border-pink-400 p-4 mb-6">
+              <p className="text-pink-800 font-medium">
+                ✨ Great news! A match has been found for your organ donation!
+              </p>
+              
+              {medicalStatus.matchFoundNotes && (
+                <div className="mt-2 bg-white p-3 rounded-md border border-pink-200">
+                  <p className="font-medium text-pink-800">Match Information:</p>
+                  <p className="italic">{medicalStatus.matchFoundNotes}</p>
+                </div>
+              )}
+              
+              <div className="mt-2">
+                <p className="text-pink-700">
+                  <span className="font-medium">Match compatibility:</span>{" "}
+                  {medicalStatus.matchCompatibility || "High"}
+                </p>
+                <p className="text-pink-700 mt-1">
+                  <span className="font-medium">Hospital:</span>{" "}
+                  {medicalStatus.assignedHospitalName || medicalStatus.hospital || "To be determined"}
+                </p>
+                <p className="text-pink-700 mt-1">
+                  The hospital will contact you shortly to schedule the transplant procedure.
+                  Thank you for your life-changing gift!
+                </p>
+              </div>
+              
+              <div className="mt-4">
+                <Link
+                  to="/donor/appointments"
+                  className="inline-block bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600 transition"
+                >
+                  View My Appointments
+                </Link>
+              </div>
+            </div>
+          )}
+          
+          {/* Rejection Messages */}
           {(medicalStatus.requestStatus === APPROVAL_STATUS.INITIAL_DOCTOR_REJECTED ||
              medicalStatus.status === APPROVAL_STATUS.INITIAL_DOCTOR_REJECTED ||
              medicalStatus.requestStatus === "initial-doctor-rejected") && (

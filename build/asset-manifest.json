@@ -1,0 +1,22 @@
+{
+  "files": {
+    "main.css": "/static/css/main.df0acc54.css",
+    "main.js": "/static/js/main.b88e788a.js",
+    "static/js/206.d1798165.chunk.js": "/static/js/206.d1798165.chunk.js",
+    "static/media/hero main.png": "/static/media/hero main.cc7f57feca2a362e8eee.png",
+    "static/media/gallery-4.png": "/static/media/gallery-4.0b4fb3fa12f6b2c8ec55.png",
+    "static/media/gallery-3.png": "/static/media/gallery-3.b65dc8ee0c9db6660921.png",
+    "static/media/heart-6873709_1280.jpg": "/static/media/heart-6873709_1280.f8307ecf20dc35868007.jpg",
+    "static/media/gallery-2.webp": "/static/media/gallery-2.d7915ca20d2dba7c6deb.webp",
+    "static/media/Green Natural Organic Logo.png": "/static/media/Green Natural Organic Logo.649c2f2ae96df79246c4.png",
+    "static/media/gallery-6.webp": "/static/media/gallery-6.85ef29a69ff9407dc9ae.webp",
+    "static/media/partner3.png": "/static/media/partner3.7820edce891ad2d08d9a.png",
+    "static/media/gallery-5.webp": "/static/media/gallery-5.69c1805770cab43d4c97.webp",
+    "static/media/gallery-1.webp": "/static/media/gallery-1.a4e08ed2d623b0b459ae.webp",
+    "index.html": "/index.html"
+  },
+  "entrypoints": [
+    "static/css/main.df0acc54.css",
+    "static/js/main.b88e788a.js"
+  ]
+}

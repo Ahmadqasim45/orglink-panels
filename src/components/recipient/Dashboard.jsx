@@ -5,7 +5,8 @@ import React, { useState, useEffect, useContext } from "react"
 import { Link } from "react-router-dom"
 import { UserContext } from "../../contexts/UserContext"
 import { db } from "../../firebase"
-import { collection, query, where, getDocs } from "firebase/firestore"
+import { collection, query, where, getDocs, doc, onSnapshot } from "firebase/firestore"
+import { APPROVAL_STATUS, getStatusColor, getStatusDisplay } from "../../utils/approvalSystem"
 import {
   FaUserCircle,
   FaClipboardList,
@@ -53,6 +54,59 @@ function RecipientDashboard() {
     isComplete: false,
     missingFields: [],
   })
+  const [requestStatus, setRequestStatus] = useState("not-submitted")
+  const [doctorComment, setDoctorComment] = useState("")
+  const [adminComment, setAdminComment] = useState("")
+  const [requestSubmissionDate, setRequestSubmissionDate] = useState(null)
+  const [medicalEvaluationStatus, setMedicalEvaluationStatus] = useState("pending")
+  const [waitingListStatus, setWaitingListStatus] = useState("pending")
+  const [matchedStatus, setMatchedStatus] = useState("pending")
+
+  // Function to get the current stage and progress percentage
+  const getTransplantProgress = () => {
+    const stages = [
+      { key: "doctor-approval", label: "Doctor Approval", status: requestStatus },
+      { key: "admin-approval", label: "Admin Approval", status: requestStatus },
+      { key: "medical-evaluation", label: "Medical Evaluation", status: medicalEvaluationStatus },
+      { key: "waiting-list", label: "Waiting List", status: waitingListStatus },
+      { key: "matched", label: "Matched", status: matchedStatus }
+    ];
+
+    let currentStage = 0;
+    let progressPercentage = 0;
+
+    // Determine current stage based on request status
+    if (requestStatus === "pending") {
+      currentStage = 0;
+      progressPercentage = 20;
+    } else if (requestStatus === "doctor-approved") {
+      currentStage = 1;
+      progressPercentage = 40;
+    } else if (requestStatus === "admin-approved") {
+      currentStage = 2;
+      progressPercentage = 60;      // Check medical evaluation status
+      if (medicalEvaluationStatus === "completed" || 
+          medicalEvaluationStatus === "medical-evaluation-completed" || 
+          medicalEvaluationStatus === APPROVAL_STATUS.MEDICAL_EVALUATION_COMPLETED) {
+        currentStage = 3;
+        progressPercentage = 80;
+        // Check waiting list status
+        if (waitingListStatus === "active") {
+          currentStage = 4;
+          progressPercentage = 100;
+          // Check if matched
+          if (matchedStatus === "matched") {
+            currentStage = 5;
+            progressPercentage = 100;
+          }
+        }
+      }
+    } else if (requestStatus === "rejected") {
+      progressPercentage = 0;
+    }
+
+    return { stages, currentStage, progressPercentage };
+  };
 
   useEffect(() => {
     const fetchRecipientData = async () => {
@@ -61,12 +115,32 @@ function RecipientDashboard() {
       try {
         // Fetch recipient profile
         const recipientsRef = collection(db, "recipients")
-        const q = query(recipientsRef, where("userId", "==", user.uid))
-        const querySnapshot = await getDocs(q)
-
+        const q = query(recipientsRef, where("userId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        
         if (!querySnapshot.empty) {
-          const profileData = querySnapshot.docs[0].data()
-          setProfile(profileData)
+          const profileData = querySnapshot.docs[0].data();
+          setProfile(profileData)          // Get request status information
+          setRequestStatus(profileData.requestStatus || "not-submitted")
+          setDoctorComment(profileData.doctorComment || "")
+          setAdminComment(profileData.adminComment || "")
+          setRequestSubmissionDate(profileData.requestSubmissionDate ? 
+            profileData.requestSubmissionDate.toDate() : null)
+            // Get additional stage status information
+          
+          // Handle both status and medicalEvaluationStatus fields for consistent handling
+          let evalStatus = profileData.medicalEvaluationStatus || "pending";
+          
+          // Check for status field that might contain evaluation status
+          if (profileData.status === "medical-evaluation-completed" || 
+              profileData.status === APPROVAL_STATUS.MEDICAL_EVALUATION_COMPLETED) {
+            evalStatus = "completed"; // Normalize for internal state
+            console.log('Initial load: Detected completed medical evaluation from status field');
+          }
+          
+          setMedicalEvaluationStatus(evalStatus);
+          setWaitingListStatus(profileData.waitingListStatus || "pending");
+          setMatchedStatus(profileData.matchedStatus || "pending");
 
           // Check profile completeness
           checkProfileCompleteness(profileData)
@@ -98,17 +172,87 @@ function RecipientDashboard() {
             healthScore: "Good",
             compatibilityMatches: 2,
           })
-        }
-
-        setLoading(false)
+        }        setLoading(false);
       } catch (error) {
-        console.error("Error fetching recipient data:", error)
-        setLoading(false)
+        console.error("Error fetching recipient data:", error);
+        setLoading(false);
       }
-    }
+    };
 
-    fetchRecipientData()
+    fetchRecipientData();
   }, [user])
+
+  // Add real-time listener for recipient status updates
+  useEffect(() => {
+    if (!user) return;
+
+    let unsubscribe = null;
+
+    const setupRealtimeListener = async () => {
+      try {
+        // Find the recipient document first using userId field
+        const recipientsRef = collection(db, "recipients");
+        const q = query(recipientsRef, where("userId", "==", user.uid));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          const recipientDocId = querySnapshot.docs[0].id;
+          
+          // Set up real-time listener on the specific recipient document
+          const recipientDocRef = doc(db, "recipients", recipientDocId);
+          unsubscribe = onSnapshot(recipientDocRef, (doc) => {
+            if (doc.exists()) {
+              const profileData = doc.data();
+              console.log('🔄 Real-time recipient status update:', {
+                requestStatus: profileData.requestStatus,
+                medicalEvaluationStatus: profileData.medicalEvaluationStatus,
+                evaluationMessage: profileData.evaluationMessage
+              });
+                // Update state with new data
+              setProfile(profileData);
+              setRequestStatus(profileData.requestStatus || "not-submitted");
+              setDoctorComment(profileData.doctorComment || "");
+              setAdminComment(profileData.adminComment || "");
+              
+              // Handle both status and medicalEvaluationStatus fields
+              let evalStatus = profileData.medicalEvaluationStatus || "pending";
+              
+              // Additional check for status field that might contain evaluation status
+              if (profileData.status === "medical-evaluation-completed" || 
+                  profileData.status === APPROVAL_STATUS.MEDICAL_EVALUATION_COMPLETED) {
+                evalStatus = "completed"; // Normalize for internal state
+                console.log('🔄 Detected completed medical evaluation from status field');
+              }
+              
+              setMedicalEvaluationStatus(evalStatus);
+              setWaitingListStatus(profileData.waitingListStatus || "pending");
+              setMatchedStatus(profileData.matchedStatus || "pending");
+              
+              if (profileData.requestSubmissionDate) {
+                setRequestSubmissionDate(profileData.requestSubmissionDate.toDate());
+              }
+              
+              // Update profile completeness
+              checkProfileCompleteness(profileData);
+            }
+          }, (error) => {
+            console.error("Error listening to recipient changes:", error);
+          });
+        }
+      } catch (error) {
+        console.error("Error setting up real-time listener:", error);
+      }
+    };
+
+    setupRealtimeListener();
+
+    // Cleanup listener on component unmount
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [user]);
 
   // Check if profile is complete and identify missing fields
   const checkProfileCompleteness = (profileData) => {
@@ -184,8 +328,208 @@ function RecipientDashboard() {
                 </Link>
               )}
             </div>
+          </div>        </header>
+
+        {/* Application Status and Progress - Moved to top */}
+        {requestStatus !== "not-submitted" && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-5 mb-6">
+            <h2 className="text-lg font-medium text-gray-800 mb-4 flex items-center">
+              <FaCheckCircle className="mr-2 text-[#973131]" />
+              Medical Form Application Status
+            </h2>
+            
+            <div className="flex items-center mb-3">
+              <span className="text-sm font-medium mr-2">Status:</span>
+              <span className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(requestStatus)}`}>
+                {getStatusDisplay(requestStatus)}
+              </span>
+            </div>
+            
+            {requestSubmissionDate && (
+              <div className="text-sm text-gray-600 mb-4">
+                <span className="font-medium">Submitted on:</span> {requestSubmissionDate.toLocaleDateString()}
+              </div>
+            )}
+              <div className="mb-4">
+              {(() => {
+                const { stages, currentStage, progressPercentage } = getTransplantProgress();
+                return (
+                  <>
+                    <div className="flex justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">Transplant Journey Progress</span>
+                      <span className="text-sm font-medium text-gray-700">{progressPercentage}%</span>
+                    </div>
+                    
+                    {/* Enhanced 5-stage progress bar */}
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        {stages.map((stage, index) => (
+                          <div key={stage.key} className="flex flex-col items-center relative" style={{ width: '18%' }}>
+                            {/* Stage circle */}
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                              index <= currentStage 
+                                ? 'bg-teal-600 text-white' 
+                                : index === currentStage + 1 && requestStatus !== 'rejected'
+                                  ? 'bg-yellow-500 text-white'
+                                  : 'bg-gray-300 text-gray-600'
+                            }`}>
+                              {index < currentStage ? (
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              ) : (
+                                index + 1
+                              )}
+                            </div>
+                            
+                            {/* Stage label */}
+                            <span className={`text-xs mt-2 text-center leading-tight ${
+                              index <= currentStage ? 'text-teal-600 font-medium' : 'text-gray-500'
+                            }`}>
+                              {stage.label}
+                            </span>
+                            
+                            {/* Connection line */}
+                            {index < stages.length - 1 && (
+                              <div className={`absolute top-4 left-8 w-full h-0.5 ${
+                                index < currentStage ? 'bg-teal-600' : 'bg-gray-300'
+                              }`} style={{ width: 'calc(100% + 2rem)' }} />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Overall progress bar */}
+                      <div className="w-full bg-gray-200 rounded-full h-2.5 mt-4">
+                        <div 
+                          className="bg-teal-600 h-2.5 rounded-full transition-all duration-500" 
+                          style={{ width: `${progressPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+              
+              {/* Status-specific notification messages */}
+              {requestStatus === "pending" && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-r-md">
+                  <p className="text-yellow-800 font-medium">Your application is under review by the medical team.</p>
+                  <p className="text-yellow-700 mt-1 text-sm">You cannot edit your information while your application is being reviewed.</p>
+                </div>
+              )}
+
+              {requestStatus === "doctor-approved" && (
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-md">
+                  <p className="text-blue-800 font-medium">Congratulations! Your application has been approved by the medical team.</p>
+                  
+                  {doctorComment && (
+                    <div className="mt-3 bg-white p-3 rounded-md border border-blue-200">
+                      <p className="font-medium text-blue-800 text-sm">Medical Team Note:</p>
+                      <p className="italic text-blue-700 text-sm mt-1">{doctorComment}</p>
+                    </div>
+                  )}
+                  
+                  <p className="mt-2 text-blue-700 text-sm">The medical team will contact you soon to schedule your appointment.</p>
+                </div>
+              )}              {requestStatus === "admin-approved" && (
+                <div className="bg-green-50 border-l-4 border-green-400 p-3 rounded-r-md">
+                  <p className="text-green-800 font-medium">Congratulations! Your application has been fully approved!</p>
+                  
+                  {adminComment && (
+                    <div className="mt-3 bg-white p-3 rounded-md border border-green-200">
+                      <p className="font-medium text-green-800 text-sm">Approval Note:</p>
+                      <p className="italic text-green-700 text-sm mt-1">{adminComment}</p>
+                    </div>
+                  )}
+                  
+                  <div className="mt-3">
+                    <p className="text-green-700 text-sm"><span className="font-medium">Hospital:</span> {profile?.hospitalAssociation || 'N/A'}</p>
+                    <p className="text-green-700 mt-1 text-sm">Your transplant center will contact you shortly to schedule your initial consultation.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Medical Evaluation Stage */}
+              {requestStatus === "admin-approved" && medicalEvaluationStatus === "pending" && (
+                <div className="bg-purple-50 border-l-4 border-purple-400 p-3 rounded-r-md mt-3">
+                  <p className="text-purple-800 font-medium">Next Step: Medical Evaluation</p>
+                  <p className="text-purple-700 mt-1 text-sm">Your medical evaluation is being scheduled. This comprehensive assessment will determine your transplant candidacy.</p>
+                </div>
+              )}              {(medicalEvaluationStatus === "in-progress" || 
+                medicalEvaluationStatus === "medical-evaluation-in-progress" || 
+                medicalEvaluationStatus === APPROVAL_STATUS.MEDICAL_EVALUATION_IN_PROGRESS) && (
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-r-md mt-3">
+                  <p className="text-blue-800 font-medium">Medical Evaluation in Progress</p>
+                  <p className="text-blue-700 mt-1 text-sm">Your medical evaluation is currently underway. Please complete all required tests and appointments.</p>
+                  {profile?.evaluationMessage && (
+                    <p className="text-blue-800 mt-2 font-medium">{profile.evaluationMessage}</p>
+                  )}
+                </div>
+              )}
+
+              {(medicalEvaluationStatus === "completed" || 
+                medicalEvaluationStatus === "medical-evaluation-completed" || 
+                medicalEvaluationStatus === APPROVAL_STATUS.MEDICAL_EVALUATION_COMPLETED) && (
+                <div className="bg-teal-50 border-l-4 border-teal-400 p-3 rounded-r-md mt-3">
+                  <p className="text-teal-800 font-medium">Medical Evaluation Completed</p>
+                  <p className="text-teal-700 mt-1 text-sm">Your medical evaluation has been completed successfully. You are now eligible for the waiting list.</p>
+                  {profile?.evaluationMessage && (
+                    <p className="text-teal-800 mt-2 font-medium">{profile.evaluationMessage}</p>
+                  )}
+                </div>
+              )}              {/* Waiting List Stage */}
+              {(medicalEvaluationStatus === "completed" || 
+                medicalEvaluationStatus === "medical-evaluation-completed" || 
+                medicalEvaluationStatus === APPROVAL_STATUS.MEDICAL_EVALUATION_COMPLETED) && 
+                waitingListStatus === "pending" && (
+                <div className="bg-orange-50 border-l-4 border-orange-400 p-3 rounded-r-md mt-3">
+                  <p className="text-orange-800 font-medium">Waiting List Registration Pending</p>
+                  <p className="text-orange-700 mt-1 text-sm">Your application is being processed for waiting list registration.</p>
+                </div>
+              )}
+
+              {waitingListStatus === "active" && (
+                <div className="bg-indigo-50 border-l-4 border-indigo-400 p-3 rounded-r-md mt-3">
+                  <p className="text-indigo-800 font-medium">Active on Waiting List</p>
+                  <p className="text-indigo-700 mt-1 text-sm">You are now actively on the organ waiting list. We will contact you immediately when a compatible organ becomes available.</p>
+                  <div className="mt-2 bg-white p-2 rounded border border-indigo-200">
+                    <p className="text-xs text-indigo-600"><span className="font-medium">Important:</span> Keep your contact information updated and stay healthy while waiting.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Matched Stage */}
+              {matchedStatus === "matched" && (
+                <div className="bg-emerald-50 border-l-4 border-emerald-400 p-3 rounded-r-md mt-3">
+                  <p className="text-emerald-800 font-medium">🎉 Organ Match Found!</p>
+                  <p className="text-emerald-700 mt-1 text-sm">Congratulations! A compatible organ has been found. Please contact your transplant center immediately.</p>
+                  <div className="mt-3 bg-white p-3 rounded border border-emerald-200">
+                    <p className="text-emerald-800 font-medium text-sm">Next Steps:</p>
+                    <ul className="text-xs text-emerald-700 mt-1 space-y-1">
+                      <li>• Contact your transplant coordinator immediately</li>
+                      <li>• Prepare for pre-transplant procedures</li>
+                      <li>• Follow all pre-surgery instructions</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {requestStatus === "rejected" && (
+                <div className="bg-red-50 border-l-4 border-red-400 p-3 rounded-r-md">
+                  <p className="text-red-800 font-medium">We're sorry, your application has been declined.</p>
+                  
+                  {doctorComment && (
+                    <div className="mt-3 bg-white p-3 rounded-md border border-red-200">
+                      <p className="font-medium text-red-800 text-sm">Message from Medical Team:</p>
+                      <p className="italic text-red-700 text-sm mt-1">{doctorComment}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </header>
+        )}
 
         {/* Profile Alert with improved layout */}
         {!profileStatus.isComplete && (
@@ -372,6 +716,7 @@ function RecipientDashboard() {
           </div>
         </div>
 
+
         {/* Rest of your dashboard with updated styling... */}
         {/* Continue with similar improvements for other sections */}
       </div>
@@ -453,7 +798,7 @@ function IncompleteProfileView({ profileStatus }) {
                 <span className="text-xs text-blue-500 font-medium flex items-center">
                   Learn more
                   <svg className="w-3.5 h-3.5 ml-1 transform group-hover:translate-x-0.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"></path>
                   </svg>
                 </span>
               </div>
@@ -484,7 +829,7 @@ function IncompleteProfileView({ profileStatus }) {
                 <span className="text-xs text-green-500 font-medium flex items-center">
                   Learn more
                   <svg className="w-3.5 h-3.5 ml-1 transform group-hover:translate-x-0.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"></path>
                   </svg>
                 </span>
               </div>
@@ -517,7 +862,7 @@ function IncompleteProfileView({ profileStatus }) {
                 <span className="text-xs text-purple-500 font-medium flex items-center">
                   Learn more
                   <svg className="w-3.5 h-3.5 ml-1 transform group-hover:translate-x-0.5 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"></path>
                   </svg>
                 </span>
               </div>

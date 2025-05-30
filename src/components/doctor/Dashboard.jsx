@@ -1857,6 +1857,163 @@ const handleAppointmentsAction = (patient, type) => {
           </div>
         </div>
       </div>
+    );  };
+
+  const RecipientDetailsModal = () => {
+    if (!selectedRecipient) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <h2 className="text-2xl font-bold mb-4">
+            Recipient Details: {getRecipientName(selectedRecipient)}
+          </h2>
+
+          {/* Personal Information Section */}
+          <section className="mb-6">
+            <h3 className="text-xl font-semibold mb-2">Personal Information</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <p>
+                <span className="font-medium">Name:</span>{" "}
+                {getRecipientName(selectedRecipient)}
+              </p>
+              <p>
+                <span className="font-medium">Blood Type:</span>{" "}
+                {selectedRecipient.bloodType}
+              </p>
+              <p>
+                <span className="font-medium">Age:</span> {selectedRecipient.age}
+              </p>
+              <p>
+                <span className="font-medium">Gender:</span>{" "}
+                {selectedRecipient.gender}
+              </p>
+              <p>
+                <span className="font-medium">Weight:</span>{" "}
+                {selectedRecipient.weight} kg
+              </p>
+              <p>
+                <span className="font-medium">Height:</span>{" "}
+                {selectedRecipient.height} cm
+              </p>
+            </div>
+          </section>
+
+          {/* Medical Information Section */}
+          <section className="mb-6">
+            <h3 className="text-xl font-semibold mb-2">Medical Information</h3>
+            <p>
+              <span className="font-medium">Needed Organ:</span>{" "}
+              <span className="capitalize">
+                {selectedRecipient.organType || selectedRecipient.neededOrgan || "Not specified"}
+              </span>
+            </p>
+            <p>
+              <span className="font-medium">Urgency Level:</span>{" "}
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold
+                ${selectedRecipient.urgencyLevel === "critical" ? "bg-red-100 text-red-800" : 
+                  selectedRecipient.urgencyLevel === "high" ? "bg-orange-100 text-orange-800" :
+                  selectedRecipient.urgencyLevel === "medium" ? "bg-yellow-100 text-yellow-800" :
+                  "bg-blue-100 text-blue-800"}`}>
+                {selectedRecipient.urgencyLevel ? selectedRecipient.urgencyLevel.toUpperCase() : "NORMAL"}
+              </span>
+            </p>
+            <p>
+              <span className="font-medium">Medical Condition:</span>{" "}
+              {selectedRecipient.medicalCondition || "Not specified"}
+            </p>
+            <p>
+              <span className="font-medium">Medical History:</span>{" "}
+              {selectedRecipient.medicalHistory || "None recorded"}
+            </p>
+            <p>
+              <span className="font-medium">Current Medications:</span>{" "}
+              {selectedRecipient.currentMedications || "None"}
+            </p>
+            <p>
+              <span className="font-medium">Allergies:</span>{" "}
+              {selectedRecipient.allergies || "None reported"}
+            </p>
+          </section>
+
+          {/* Approval Status Section */}
+          <section className="mb-6">
+            <h3 className="text-xl font-semibold mb-2">Approval Status</h3>
+            <div className="bg-gray-50 p-4 rounded-lg">
+              {/* Status indicator */}
+              <div className="mt-6 text-center">
+                <span className={`px-3 py-1 text-sm font-medium rounded-full
+                  ${selectedRecipient.requestStatus === "pending" ? "bg-yellow-100 text-yellow-800" :
+                    selectedRecipient.requestStatus === "doctor-approved" ? "bg-blue-100 text-blue-800" :
+                    selectedRecipient.requestStatus === "admin-approved" ? "bg-green-100 text-green-800" :
+                    "bg-red-100 text-red-800"}
+                `}>
+                  <span className="mr-1">●</span>
+                  {selectedRecipient.requestStatus === "pending" ? "Awaiting Doctor Review" :
+                    selectedRecipient.requestStatus === "doctor-approved" ? "Doctor Approved, Awaiting Admin Review" :
+                    selectedRecipient.requestStatus === "admin-approved" ? "Fully Approved" :
+                    selectedRecipient.requestStatus === "doctor-rejected" ? "Rejected by Doctor" :
+                    selectedRecipient.requestStatus === "admin-rejected" ? "Rejected by Admin" :
+                    "Rejected"}
+                </span>
+              </div>
+            </div>
+
+            {/* Doctor notes */}
+            {selectedRecipient.doctorComment && (
+              <div className="mt-2 p-3 bg-white rounded-md border border-gray-200">
+                <p className="font-medium text-gray-800">Doctor Notes:</p>
+                <p className="italic">{selectedRecipient.doctorComment}</p>
+              </div>
+            )}
+            
+            {/* Admin notes */}
+            {selectedRecipient.adminComment && (
+              <div className="mt-2 p-3 bg-white rounded-md border border-green-200">
+                <p className="font-medium text-green-800">Admin Notes:</p>
+                <p className="italic">{selectedRecipient.adminComment}</p>
+              </div>
+            )}
+          </section>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-2">
+            {activeRecipientTab === "pending" && (
+              <>
+                <button                  onClick={() => handleApprove(selectedRecipient.id)}
+                  className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                  disabled={actionInProgress}
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => handleReject(selectedRecipient.id)}
+                  className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                  disabled={actionInProgress}
+                >
+                  Reject
+                </button>
+              </>
+            )}
+            
+            {activeRecipientTab === "approved" && (
+              <button
+                onClick={() => handleAppointmentsAction(selectedRecipient, "recipient")}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                disabled={actionInProgress}
+              >
+                {hasAppointments(selectedRecipient.id, "recipient") ? "View Appointments" : "Schedule Appointment"}
+              </button>
+            )}
+            <button
+              onClick={() => setIsRecipientDetailsModalOpen(false)}
+              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
     );
   };
 

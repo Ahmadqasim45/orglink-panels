@@ -907,9 +907,23 @@ export const createRecipientAppointment = async (appointmentData) => {
         } else {
           console.log("✅ Appointment successfully saved with correct recipientId");
         }
-      }
-    } catch (verifyError) {
+      }    } catch (verifyError) {
       console.error("Error verifying saved appointment data:", verifyError);
+    }
+
+    // Start medical evaluation automatically when recipient appointment is created
+    try {
+      const finalRecipientId = userId || recipientId;
+      if (finalRecipientId) {
+        console.log(`Starting medical evaluation for recipient ${finalRecipientId} with appointment ${docRef.id}`);
+        await startRecipientMedicalEvaluation(finalRecipientId, docRef.id);
+        console.log("✅ Medical evaluation started successfully");
+      } else {
+        console.warn("⚠️ Could not start medical evaluation - no valid recipient ID found");
+      }
+    } catch (medicalEvaluationError) {
+      console.error("Error starting medical evaluation:", medicalEvaluationError);
+      // Don't throw here - appointment was created successfully, this is just a status update issue
     }
     
     return docRef.id;
@@ -1079,6 +1093,67 @@ export const getAppointmentDetails = async (appointmentId, appointmentType) => {
 
 // Medical Evaluation Workflow Functions
 
+// Update recipient status to "medical evaluation in progress" when appointment is scheduled
+export const startRecipientMedicalEvaluation = async (recipientId, appointmentId) => {
+  try {
+    const recipientRef = doc(db, "users", recipientId);
+    const medicalRecordRef = doc(db, "medicalRecords", recipientId);
+    
+    const updateData = {
+      requestStatus: APPROVAL_STATUS.MEDICAL_EVALUATION_IN_PROGRESS,
+      status: 'medical-evaluation-in-progress',
+      medicalEvaluationStarted: Timestamp.now(),
+      currentAppointmentId: appointmentId,
+      statusNotes: 'Your appointment has been scheduled. Medical evaluation is now in progress.',
+      evaluationMessage: 'Your appointment is scheduled - View your appointments',
+      updatedAt: Timestamp.now()
+    };
+    
+    // Update both users and medicalRecords collections
+    await Promise.all([
+      updateDoc(recipientRef, updateData),
+      updateDoc(medicalRecordRef, updateData)
+    ]);
+    
+    console.log(`Started medical evaluation for recipient ${recipientId}`);
+    return true;
+  } catch (error) {
+    console.error("Error starting recipient medical evaluation:", error);
+    throw error;
+  }
+};
+
+// Complete medical evaluation when recipient appointment is completed
+export const completeRecipientMedicalEvaluation = async (recipientId, appointmentId, evaluationNotes = '') => {
+  try {
+    const recipientRef = doc(db, "users", recipientId);
+    const medicalRecordRef = doc(db, "medicalRecords", recipientId);
+    
+    const updateData = {
+      requestStatus: APPROVAL_STATUS.MEDICAL_EVALUATION_COMPLETED,
+      status: 'medical-evaluation-completed',
+      medicalEvaluationCompleted: Timestamp.now(),
+      evaluationNotes: evaluationNotes || 'Medical evaluation completed successfully',
+      statusNotes: 'Your appointment/evaluation process has been completed successfully.',
+      evaluationMessage: 'Your appointment or evaluation process completed',
+      completedAppointmentId: appointmentId,
+      updatedAt: Timestamp.now()
+    };
+    
+    // Update both users and medicalRecords collections
+    await Promise.all([
+      updateDoc(recipientRef, updateData),
+      updateDoc(medicalRecordRef, updateData)
+    ]);
+    
+    console.log(`Completed medical evaluation for recipient ${recipientId}`);
+    return true;
+  } catch (error) {
+    console.error("Error completing recipient medical evaluation:", error);
+    throw error;
+  }
+};
+
 // Update donor status to "medical evaluation in progress" when appointment is scheduled
 export const startMedicalEvaluation = async (donorId, appointmentId) => {
   try {
@@ -1156,8 +1231,7 @@ export const completeAppointmentWithEvaluation = async (appointmentId, appointme
     }
     
     const appointmentData = appointmentDoc.data();
-    
-    // Update appointment status
+      // Update appointment status
     await updateDoc(appointmentRef, {
       status: "completed",
       completedAt: Timestamp.now(),
@@ -1165,9 +1239,11 @@ export const completeAppointmentWithEvaluation = async (appointmentId, appointme
       updatedAt: Timestamp.now()
     });
     
-    // If this is a donor appointment, update the medical evaluation status
+    // Update medical evaluation status based on appointment type
     if (appointmentType === "donor" && appointmentData.donorId) {
       await completeMedicalEvaluation(appointmentData.donorId, appointmentId, evaluationNotes);
+    } else if (appointmentType === "recipient" && appointmentData.recipientId) {
+      await completeRecipientMedicalEvaluation(appointmentData.recipientId, appointmentId, evaluationNotes);
     }
     
     return appointmentId;

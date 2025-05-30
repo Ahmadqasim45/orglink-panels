@@ -32,9 +32,7 @@ export default function CompleteProfile() {
   const [noCitiesFound, setNoCitiesFound] = useState(false)
   const [noHospitalsFound, setNoHospitalsFound] = useState(false)
   const [hospitalId, setHospitalId] = useState("")
-
   const [requestStatus, setRequestStatus] = useState("not-submitted"); // Possible values: not-submitted, pending, doctor-approved, admin-approved, rejected
-  const [statusMessage, setStatusMessage] = useState("");
   const [doctorComment, setDoctorComment] = useState("");
   const [adminComment, setAdminComment] = useState("");
   const [requestSubmissionDate, setRequestSubmissionDate] = useState(null);
@@ -70,12 +68,8 @@ export default function CompleteProfile() {
     previousTransfusions: "no",
     previousTransfusionDetails: "",
     immuneSystemIssues: "no",
-    immuneSystemDetails: "",
-
-    // Request Details
+    immuneSystemDetails: "",    // Request Details
     organType: "",
-    bloodProductType: "",
-    requestType: "organ", // organ or blood
     urgencyLevel: "normal",
     requiredQuantity: "",
     requestReason: "",
@@ -109,21 +103,19 @@ export default function CompleteProfile() {
       setLoadingCities(true)
       setNoCitiesFound(false)
 
-      try {
-        const hospitalsRef = collection(db, "hospitals")
+    try {
+        const hospitalsRef = collection(db, "hospitals");
         const q = query(
           hospitalsRef,
           where("province", "==", profile.state),
           where("verificationStatus", "==", "Approved"),
-        )
-        const querySnapshot = await getDocs(q)
-
-        const uniqueCities = new Set()
+        );
+        const querySnapshot = await getDocs(q);
+        const uniqueCities = new Set();
         querySnapshot.forEach((doc) => {
-          uniqueCities.add(doc.data().city)
-        })
-
-        const cityList = [...uniqueCities]
+          uniqueCities.add(doc.data().city);
+        });
+        const cityList = [...uniqueCities];
         setCities(cityList)
         setHospitals([]) // Reset hospitals when province changes
 
@@ -132,15 +124,45 @@ export default function CompleteProfile() {
           setProfile((prev) => ({ ...prev, city: "", hospitalAssociation: "" }))
         }
 
-        setLoadingCities(false)
-
+        setLoadingCities(false);
+        
         if (cityList.length === 0) {
+          // If no cities with approved hospitals found, set the flag
           setNoCitiesFound(true)
+          
+          // Add some default cities based on state/province to improve UX
+          // We'll show these as options but mark them with "(No approved hospitals yet)"
+          const defaultCitiesByState = {
+            "Alberta": ["Calgary", "Edmonton", "Red Deer"],
+            "British Columbia": ["Vancouver", "Victoria", "Kelowna"],
+            "Manitoba": ["Winnipeg", "Brandon"],
+            "New Brunswick": ["Fredericton", "Moncton", "Saint John"],
+            "Newfoundland and Labrador": ["St. John's", "Corner Brook"],
+            "Nova Scotia": ["Halifax", "Sydney"],
+            "Ontario": ["Toronto", "Ottawa", "Hamilton", "London", "Windsor"],
+            "Prince Edward Island": ["Charlottetown", "Summerside"],
+            "Quebec": ["Montreal", "Quebec City", "Gatineau"],
+            "Saskatchewan": ["Regina", "Saskatoon"],
+            // US States
+            "California": ["Los Angeles", "San Francisco", "San Diego"],
+            "New York": ["New York City", "Buffalo", "Albany"],
+            "Texas": ["Houston", "Dallas", "Austin"],
+            "Florida": ["Miami", "Orlando", "Tampa"],
+            // Default for any other province/state
+            "default": ["Major City 1", "Major City 2", "Major City 3"]
+          };
+          
+          // Get default cities for the selected state or use the default list
+          const defaultCities = defaultCitiesByState[profile.state] || defaultCitiesByState["default"];
+          setCities(defaultCities);
         }
       } catch (error) {
         console.error("Error fetching cities:", error)
         setLoadingCities(false)
         setNoCitiesFound(true)
+        
+        // Set some default cities even in case of error
+        setCities(["Major City 1", "Major City 2", "Major City 3"]);
       }
     }
 
@@ -155,32 +177,37 @@ export default function CompleteProfile() {
       setLoadingHospitals(true)
       setNoHospitalsFound(false)
 
-      try {
-        const hospitalsRef = collection(db, "hospitals")
-        const q = query(hospitalsRef, where("city", "==", profile.city))
-        const querySnapshot = await getDocs(q)
-
-        const hospitalList = querySnapshot.docs.map((doc) => ({
+      try {        const hospitalsRef = collection(db, "hospitals");
+        const q = query(
+          hospitalsRef, 
+          where("city", "==", profile.city),
+          where("verificationStatus", "==", "Approved")
+        );
+        const querySnapshot = await getDocs(q);        const hospitalList = querySnapshot.docs.map((doc) => ({
           name: doc.data().hospitalName,
           userId: doc.data().userId,
-        }))
+        }));
 
-        setHospitals(hospitalList)
+        setHospitals(hospitalList);
 
         // Only reset hospital if editing
         if (isEditing) {
-          setProfile((prev) => ({ ...prev, hospitalAssociation: "" }))
-        }
-
-        setLoadingHospitals(false)
-
+          setProfile((prev) => ({ ...prev, hospitalAssociation: "" }));
+        }setLoadingHospitals(false);
+        
         if (hospitalList.length === 0) {
-          setNoHospitalsFound(true)
-        }
-      } catch (error) {
-        console.error("Error fetching hospitals:", error)
-        setLoadingHospitals(false)
-        setNoHospitalsFound(true)
+          setNoHospitalsFound(true);
+          // Provide some guidance information
+          setHospitals([
+            { 
+              name: "Contact us to add a hospital in this area", 
+              userId: "contact_support" 
+            }
+          ]);
+        }      } catch (error) {
+        console.error("Error fetching hospitals:", error);
+        setLoadingHospitals(false);
+        setNoHospitalsFound(true);
       }
     }
 
@@ -229,11 +256,8 @@ export default function CompleteProfile() {
 
       if (!querySnapshot.empty) {
         // Profile exists - set to view mode
-        const recipientData = querySnapshot.docs[0].data();
-
-        // Get request status information
+        const recipientData = querySnapshot.docs[0].data();        // Get request status information
         setRequestStatus(recipientData.requestStatus || "not-submitted");
-        setStatusMessage(recipientData.statusMessage || "");
         setDoctorComment(recipientData.doctorComment || "");
         setAdminComment(recipientData.adminComment || "");
         setRequestSubmissionDate(recipientData.requestSubmissionDate ? 
@@ -271,12 +295,8 @@ export default function CompleteProfile() {
           previousTransfusions: recipientData.previousTransfusions || "no",
           previousTransfusionDetails: recipientData.previousTransfusionDetails || "",
           immuneSystemIssues: recipientData.immuneSystemIssues || "no",
-          immuneSystemDetails: recipientData.immuneSystemDetails || "",
-
-          // Request Details
+          immuneSystemDetails: recipientData.immuneSystemDetails || "",          // Request Details
           organType: recipientData.organType || "",
-          bloodProductType: recipientData.bloodProductType || "",
-          requestType: recipientData.requestType || "organ",
           urgencyLevel: recipientData.urgencyLevel || "normal",
           requiredQuantity: recipientData.requiredQuantity || "",
           requestReason: recipientData.requestReason || "",
@@ -343,7 +363,6 @@ export default function CompleteProfile() {
       [name]: value,
     }))
   }
-
   // Show or hide additional fields based on selected options
   const shouldShowField = (fieldName) => {
     switch (fieldName) {
@@ -353,10 +372,6 @@ export default function CompleteProfile() {
         return profile.immuneSystemIssues === "yes"
       case "hospitalizedLocation":
         return profile.currentlyHospitalized === "yes"
-      case "organType":
-        return profile.requestType === "organ"
-      case "bloodProductType":
-        return profile.requestType === "blood"
       case "caregiverDetails":
         return profile.hasCaregiver === "yes"
       default:
@@ -592,11 +607,10 @@ export default function CompleteProfile() {
       setShowSummary(false)
     }
   }
-
   // Validation for each step
   const validateStep = (step) => {
     switch (step) {
-      case 1: // Personal Information (same as before)
+      case 1: // Personal Information
         return (
           profile.fullName &&
           profile.email &&
@@ -609,19 +623,18 @@ export default function CompleteProfile() {
           profile.bloodType &&
           profile.weight &&
           profile.height
-        )
-      case 2: // Organ Request (moved from step 4)
+        );
+      case 2: // Organ Request
         return (
-          ((profile.requestType === "organ" && profile.organType) ||
-            (profile.requestType === "blood" && profile.bloodProductType)) &&
+          profile.organType &&
           profile.urgencyLevel &&
           profile.requiredQuantity &&
           profile.requestReason &&
           profile.requestDate &&
           profile.estimatedTimeframe &&
           (profile.currentlyHospitalized !== "yes" || profile.hospitalizedLocation)
-        )
-      case 3: // Medical Information (specific to selected organ)
+        );
+      case 3: // Medical Information
         return (
           profile.diagnosedCondition &&
           profile.diagnosisDate &&
@@ -633,15 +646,15 @@ export default function CompleteProfile() {
           profile.currentMedications &&
           (profile.previousTransfusions !== "yes" || profile.previousTransfusionDetails) &&
           (profile.immuneSystemIssues !== "yes" || profile.immuneSystemDetails)
-        )
-      case 4: // Transplant Center (moved from step 2)
+        );
+      case 4: // Transplant Center
         return (
           profile.state &&
           profile.city &&
           profile.hospitalAssociation
-        )
+        );
       default:
-        return false
+        return false;
     }
   }
 
@@ -737,109 +750,7 @@ export default function CompleteProfile() {
                 <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Profile Summary</h3>
 
                 {/* Application Status - Simplified */}
-                {requestStatus !== "not-submitted" && (
-                  <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6">
-                    <h4 className="text-lg font-semibold text-gray-800 mb-3">Application Status</h4>
-                    
-                    <div className="flex items-center mb-3">
-                      <span className="text-sm font-medium mr-2">Status:</span>
-                      <span className={`px-3 py-1 text-sm font-medium rounded-full ${
-                        requestStatus === "pending" ? "bg-yellow-100 text-yellow-800" :
-                        requestStatus === "doctor-approved" ? "bg-blue-100 text-blue-800" :
-                        requestStatus === "admin-approved" ? "bg-green-100 text-green-800" :
-                        requestStatus === "rejected" ? "bg-red-100 text-red-800" :
-                        "bg-gray-100 text-gray-800"
-                      }`}>
-                        {requestStatus === "pending" ? "Pending Review" :
-                         requestStatus === "doctor-approved" ? "Approved" :
-                         requestStatus === "admin-approved" ? "Approved" :
-                         requestStatus === "rejected" ? "Rejected" :
-                         "Not Submitted"}
-                      </span>
-                    </div>
-                    
-                    {requestSubmissionDate && (
-                      <div className="text-sm text-gray-600 mb-4">
-                        <span className="font-medium">Submitted on:</span> {requestSubmissionDate.toLocaleDateString()}
-                      </div>
-                    )}
-                    
-                    <div className="mb-3">
-                      <div className="flex justify-between mb-1">
-                        <span className="text-sm font-medium text-gray-700">Approval Progress</span>
-                        <span className="text-sm font-medium text-gray-700">
-                          {requestStatus === "pending" ? "0%" :
-                           requestStatus === "doctor-approved" ? "50%" :
-                           requestStatus === "admin-approved" ? "100%" :
-                           requestStatus === "rejected" ? "0%" : "0%"}
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-                        <div className="bg-teal-600 h-2.5 rounded-full transition-all duration-500" style={{ 
-                          width: 
-                            requestStatus === "pending" ? "5%" :
-                            requestStatus === "doctor-approved" ? "50%" :
-                            requestStatus === "admin-approved" ? "100%" :
-                            "0%" 
-                        }}></div>
-                      </div>
-                      
-                      {/* Medical team messages with enhanced content */}
-                      {requestStatus === "pending" && (
-                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3">
-                          <p className="text-yellow-800 font-medium">Your application is under review by the medical team.</p>
-                          <p className="text-yellow-700 mt-1">You cannot edit your information while your application is being reviewed.</p>
-                        </div>
-                      )}
-
-                      {requestStatus === "doctor-approved" && (
-                        <div className="bg-blue-50 border-l-4 border-blue-400 p-3">
-                          <p className="text-blue-800 font-medium">Congratulations! Your application has been approved by the medical team.</p>
-                          
-                          {doctorComment && (
-                            <div className="mt-2 bg-white p-3 rounded-md border border-blue-200">
-                              <p className="font-medium text-blue-800">Medical Team Note:</p>
-                              <p className="italic">{doctorComment}</p>
-                            </div>
-                          )}
-                          
-                          <p className="mt-2 text-blue-700">The medical team will contact you soon to schedule your appointment.</p>
-                        </div>
-                      )}
-
-                      {requestStatus === "admin-approved" && (
-                        <div className="bg-green-50 border-l-4 border-green-400 p-3">
-                          <p className="text-green-800 font-medium">Congratulations! Your application has been fully approved!</p>
-                          
-                          {adminComment && (
-                            <div className="mt-2 bg-white p-3 rounded-md border border-green-200">
-                              <p className="font-medium text-green-800">Approval Note:</p>
-                              <p className="italic">{adminComment}</p>
-                            </div>
-                          )}
-                          
-                          <div className="mt-2">
-                            <p className="text-green-700"><span className="font-medium">Hospital:</span> {profile.hospitalAssociation}</p>
-                            <p className="text-green-700 mt-1">Your transplant center will contact you shortly to schedule your initial consultation.</p>
-                          </div>
-                        </div>
-                      )}
-
-                      {requestStatus === "rejected" && (
-                        <div className="bg-red-50 border-l-4 border-red-400 p-3">
-                          <p className="text-red-800 font-medium">We're sorry, your application has been declined.</p>
-                          
-                          {doctorComment && (
-                            <div className="mt-2 bg-white p-3 rounded-md border border-red-200">
-                              <p className="font-medium text-red-800">Message from Medical Team:</p>
-                              <p className="italic">{doctorComment}</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
+              
 
                 {/* Personal Information Summary - Stays as step 1 */}
                 <div className="bg-gray-50 p-4 rounded-lg">
@@ -916,24 +827,11 @@ export default function CompleteProfile() {
                         <i className="fas fa-edit mr-1"></i> Edit
                       </button>
                     )}
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  </div>                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-500">Request Type</p>
-                      <p className="font-medium capitalize">{profile.requestType}</p>
+                      <p className="text-sm text-gray-500">Organ Type</p>
+                      <p className="font-medium capitalize">{profile.organType}</p>
                     </div>
-                    {profile.requestType === "organ" && (
-                      <div>
-                        <p className="text-sm text-gray-500">Organ Type</p>
-                        <p className="font-medium capitalize">{profile.organType}</p>
-                      </div>
-                    )}
-                    {profile.requestType === "blood" && (
-                      <div>
-                        <p className="text-sm text-gray-500">Blood Product Type</p>
-                        <p className="font-medium capitalize">{profile.bloodProductType}</p>
-                      </div>
-                    )}
                     <div>
                       <p className="text-sm text-gray-500">Required Quantity</p>
                       <p className="font-medium">{profile.requiredQuantity}</p>
@@ -1259,97 +1157,38 @@ export default function CompleteProfile() {
                       </div>
                     </div>
                   </div>
-                )}
-
-                {/* Step 2: Organ Request */}
+                )}                {/* Step 2: Organ Request */}
                 {currentStep === 2 && (
                   <div className="space-y-6">
                     <h3 className="text-xl font-bold text-gray-800 border-b pb-2">Organ Request</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700">Request Type*</label>
-                        <div className="flex gap-4">
-                          <label className="inline-flex items-center">
-                            <input
-                              type="radio"
-                              name="requestType"
-                              value="organ"
-                              checked={profile.requestType === "organ"}
-                              onChange={() => handleRadioChange("requestType", "organ")}
-                              className="form-radio h-5 w-5 text-teal-600"
-                              disabled={profileExists && !isEditing}
-                            />
-                            <span className="ml-2">Organ</span>
-                          </label>
-                          <label className="inline-flex items-center">
-                            <input
-                              type="radio"
-                              name="requestType"
-                              value="blood"
-                              checked={profile.requestType === "blood"}
-                              onChange={() => handleRadioChange("requestType", "blood")}
-                              className="form-radio h-5 w-5 text-teal-600"
-                              disabled={profileExists && !isEditing}
-                            />
-                            <span className="ml-2">Blood Product</span>
-                          </label>
-                        </div>
+                      <div className="space-y-2">
+                        <label htmlFor="organType" className="block text-sm font-medium text-gray-700">
+                          Organ Type*
+                        </label>
+                        <select
+                          id="organType"
+                          name="organType"
+                          value={profile.organType}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                          required
+                          disabled={profileExists && !isEditing}
+                        >
+                          <option value="">Select organ</option>
+                          <option value="kidney">Kidney</option>
+                          <option value="liver">Liver</option>
+                          <option value="heart">Heart</option>
+                          <option value="lung">Lung</option>
+                          <option value="pancreas">Pancreas</option>
+                          <option value="intestine">Intestine</option>
+                          <option value="cornea">Cornea</option>
+                          <option value="bone">Bone</option>
+                          <option value="skin">Skin</option>
+                          <option value="heart-valves">Heart Valves</option>
+                          <option value="other">Other</option>
+                        </select>
                       </div>
-
-                      {shouldShowField("organType") && (
-                        <div className="space-y-2">
-                          <label htmlFor="organType" className="block text-sm font-medium text-gray-700">
-                            Organ Type*
-                          </label>
-                          <select
-                            id="organType"
-                            name="organType"
-                            value={profile.organType}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                            required={profile.requestType === "organ"}
-                            disabled={profileExists && !isEditing}
-                          >
-                            <option value="">Select organ</option>
-                            <option value="kidney">Kidney</option>
-                            <option value="liver">Liver</option>
-                            <option value="heart">Heart</option>
-                            <option value="lung">Lung</option>
-                            <option value="pancreas">Pancreas</option>
-                            <option value="intestine">Intestine</option>
-                            <option value="cornea">Cornea</option>
-                            <option value="bone">Bone</option>
-                            <option value="skin">Skin</option>
-                            <option value="heart-valves">Heart Valves</option>
-                            <option value="other">Other</option>
-                          </select>
-                        </div>
-                      )}
-
-                      {shouldShowField("bloodProductType") && (
-                        <div className="space-y-2">
-                          <label htmlFor="bloodProductType" className="block text-sm font-medium text-gray-700">
-                            Blood Product Type*
-                          </label>
-                          <select
-                            id="bloodProductType"
-                            name="bloodProductType"
-                            value={profile.bloodProductType}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-transparent"
-                            required={profile.requestType === "blood"}
-                            disabled={profileExists && !isEditing}
-                          >
-                            <option value="">Select blood product</option>
-                            <option value="whole-blood">Whole Blood</option>
-                            <option value="red-cells">Red Blood Cells</option>
-                            <option value="platelets">Platelets</option>
-                            <option value="plasma">Plasma</option>
-                            <option value="cryoprecipitate">Cryoprecipitate</option>
-                            <option value="other">Other</option>
-                          </select>
-                        </div>
-                      )}
                   
                       <div className="space-y-2">
                         <label htmlFor="urgencyLevel" className="block text-sm font-medium text-gray-700">
@@ -1379,7 +1218,7 @@ export default function CompleteProfile() {
                           name="requiredQuantity"
                           value={profile.requiredQuantity}
                           onChange={handleChange}
-                          placeholder="e.g., 1 kidney, 500ml blood"
+                          placeholder="e.g., 1 kidney"
                           required
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                           disabled={profileExists && !isEditing}
@@ -1428,15 +1267,14 @@ export default function CompleteProfile() {
                           value={profile.requestReason}
                           onChange={handleChange}
                           rows={3}
-                          placeholder="Explain why you need this organ/blood product"
+                          placeholder="Explain why you need this organ"
                           required
                           className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                           disabled={profileExists && !isEditing}
                         />
                       </div>
                     </div>
-                  </div>
-                )}
+                  </div>                )}
 
                 {/* Step 3: Medical Information */}
                 {currentStep === 3 && (
@@ -1622,10 +1460,9 @@ export default function CompleteProfile() {
                           {loadingCities ? (
                             <option value="" disabled>
                               Loading cities...
-                            </option>
-                          ) : noCitiesFound ? (
+                            </option>                          ) : noCitiesFound ? (
                             <option value="" disabled>
-                              No cities found with approved hospitals
+                              Select from default city list
                             </option>
                           ) : (
                             cities.map((city) => (
@@ -1634,10 +1471,9 @@ export default function CompleteProfile() {
                               </option>
                             ))
                           )}
-                        </select>
-                        {noCitiesFound && (
-                          <p className="mt-1 text-sm text-red-600">
-                            No cities with approved hospitals found in this province.
+                        </select>                        {noCitiesFound && (
+                          <p className="mt-1 text-sm text-amber-600">
+                            <i className="fas fa-info-circle mr-1"></i> Using default city list. Hospitals may need verification.
                           </p>
                         )}
                       </div>
@@ -1671,10 +1507,9 @@ export default function CompleteProfile() {
                               </option>
                             ))
                           )}
-                        </select>
-                        {noHospitalsFound && (
-                          <p className="mt-1 text-sm text-red-600">
-                            No approved hospitals found in this city. Please select another city or contact support.
+                        </select>                        {noHospitalsFound && (
+                          <p className="mt-1 text-sm text-amber-600">
+                            <i className="fas fa-info-circle mr-1"></i> No approved hospitals found in this city yet. Please select another city or contact support for assistance.
                           </p>
                         )}
                       </div>
